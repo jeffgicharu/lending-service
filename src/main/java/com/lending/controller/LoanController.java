@@ -104,4 +104,29 @@ public class LoanController {
     public ResponseEntity<CreditScoringService.CreditResult> getCreditScore(@PathVariable String customerId) {
         return ResponseEntity.ok(creditScoringService.assess(customerId));
     }
+
+    @GetMapping("/summary/{customerId}")
+    @Operation(summary = "Get customer loan portfolio summary")
+    public ResponseEntity<Map<String, Object>> getCustomerSummary(@PathVariable String customerId) {
+        var loans = loanService.getCustomerLoans(customerId);
+        var credit = creditScoringService.assess(customerId);
+        long active = loans.stream().filter(l -> l.getStatus() == com.lending.enums.LoanStatus.ACTIVE
+                || l.getStatus() == com.lending.enums.LoanStatus.DISBURSED).count();
+        BigDecimal totalOutstanding = loans.stream()
+                .map(com.lending.entity.Loan::getOutstandingBalance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalBorrowed = loans.stream()
+                .map(com.lending.entity.Loan::getPrincipal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return ResponseEntity.ok(Map.of(
+                "customerId", customerId,
+                "creditScore", credit.score(),
+                "riskBand", credit.riskBand(),
+                "totalLoans", loans.size(),
+                "activeLoans", active,
+                "totalBorrowed", totalBorrowed,
+                "totalOutstanding", totalOutstanding
+        ));
+    }
 }
