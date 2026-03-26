@@ -322,6 +322,33 @@ public class LoanService {
         return productRepository.findByActiveTrue();
     }
 
+    /**
+     * Calculate early settlement amount with interest rebate.
+     * Customers who pay off early get a discount on remaining interest.
+     */
+    public Map<String, BigDecimal> calculateEarlySettlement(String reference) {
+        Loan loan = getLoanByReference(reference);
+        BigDecimal outstanding = loan.getOutstandingBalance();
+        BigDecimal totalPaid = loan.getTotalPaid();
+
+        // Rebate: 50% of remaining unearned interest
+        BigDecimal paidInstallments = totalPaid.divide(loan.getMonthlyInstallment(), 0, RoundingMode.DOWN);
+        BigDecimal totalInstallments = BigDecimal.valueOf(loan.getTenureMonths());
+        BigDecimal remainingMonths = totalInstallments.subtract(paidInstallments);
+        BigDecimal monthlyInterestPortion = loan.getTotalInterest()
+                .divide(totalInstallments, 2, RoundingMode.HALF_UP);
+        BigDecimal unearnedInterest = monthlyInterestPortion.multiply(remainingMonths);
+        BigDecimal rebate = unearnedInterest.multiply(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal settlementAmount = outstanding.subtract(rebate).max(BigDecimal.ZERO);
+
+        return Map.of(
+                "outstandingBalance", outstanding,
+                "interestRebate", rebate,
+                "earlySettlementAmount", settlementAmount,
+                "savings", rebate
+        );
+    }
+
     // ─── HELPERS ────────────────────────────────────────────────────
 
     private Loan buildLoan(String reference, String customerId, String phoneNumber,

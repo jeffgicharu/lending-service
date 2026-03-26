@@ -99,6 +99,12 @@ public class LoanController {
         return ResponseEntity.ok(loanService.reconcile(reference));
     }
 
+    @GetMapping("/{reference}/early-settlement")
+    @Operation(summary = "Calculate early settlement amount with interest rebate")
+    public ResponseEntity<Map<String, BigDecimal>> earlySettlement(@PathVariable String reference) {
+        return ResponseEntity.ok(loanService.calculateEarlySettlement(reference));
+    }
+
     @GetMapping("/credit-score/{customerId}")
     @Operation(summary = "Get customer credit score and eligibility")
     public ResponseEntity<CreditScoringService.CreditResult> getCreditScore(@PathVariable String customerId) {
