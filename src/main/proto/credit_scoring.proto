@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.lending.grpc.proto";
+
+package creditscoring;
+
+service CreditScoringService {
+  // Get credit score for a customer
+  rpc GetCreditScore (CreditScoreRequest) returns (CreditScoreResponse);
+
+  // Check loan eligibility
+  rpc CheckEligibility (EligibilityRequest) returns (EligibilityResponse);
+
+  // Get credit history
+  rpc GetCreditHistory (CreditHistoryRequest) returns (CreditHistoryResponse);
+}
+
+message CreditScoreRequest {
+  string customer_id = 1;
+  string phone_number = 2;
+}
+
+message CreditScoreResponse {
+  string customer_id = 1;
+  int32 score = 2;
+  string risk_band = 3;  // LOW, MEDIUM, HIGH, VERY_HIGH
+  double max_eligible_amount = 4;
+  int32 max_tenure_months = 5;
+  string assessed_at = 6;
+  repeated ScoreFactor factors = 7;
+}
+
+message ScoreFactor {
+  string name = 1;
+  int32 impact = 2;  // positive or negative
+  string description = 3;
+}
+
+message EligibilityRequest {
+  string customer_id = 1;
+  string phone_number = 2;
+  double requested_amount = 3;
+  int32 requested_tenure_months = 4;
+  string product_id = 5;
+}
+
+message EligibilityResponse {
+  bool eligible = 1;
+  string reason = 2;
+  double approved_amount = 3;
+  double interest_rate = 4;
+  double monthly_installment = 5;
+  double total_repayment = 6;
+}
+
+message CreditHistoryRequest {
+  string customer_id = 1;
+}
+
+message CreditHistoryResponse {
+  string customer_id = 1;
+  int32 total_loans = 2;
+  int32 active_loans = 3;
+  int32 defaulted_loans = 4;
+  double total_borrowed = 5;
+  double total_repaid = 6;
+  double outstanding_balance = 7;
+}
