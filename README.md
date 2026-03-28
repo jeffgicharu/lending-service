@@ -1,27 +1,27 @@
 # Lending Service
 
-When you open your M-Pesa app and see "You can borrow up to KES 50,000" — there's a backend that decided that number. It checked your repayment history, counted your defaults, looked at your outstanding balances, and came up with a credit score. If you apply and get approved, it calculates your monthly installments, generates a repayment schedule, disburses the funds, and then tracks every payment until the loan is closed.
+When you open your M-Pesa app and see "You can borrow up to KES 50,000", there's a backend that decided that number. It checked your repayment history, counted your defaults, looked at your outstanding balances, and came up with a credit score. If you apply and get approved, it calculates your monthly installments, generates a repayment schedule, disburses the funds, and then tracks every payment until the loan is closed.
 
 This project does all of that. It's modeled after [Apache Fineract](https://fineract.apache.org/) (the open-source core banking platform) and covers the complete loan lifecycle from application to reconciliation.
 
 ## What It Does
 
-- **Apply for a loan** — pick a product, specify amount and tenure, get instant approval or rejection based on credit score
-- **Credit scoring** — calculates a score (400–900) based on loan history, defaults, and outstanding balances. Scores are cached in Redis so repeated checks are fast
-- **Repayment schedule** — generates an amortization table with principal/interest breakdown per installment using the standard EMI formula
-- **Make repayments** — payments are applied to the next due installment. Partial payments are tracked. Full payoff closes the loan
-- **Early settlement** — calculates how much you'd save by paying off early (50% rebate on unearned interest)
-- **Double-entry ledger** — every financial movement (disbursement, principal repayment, interest, fees) creates balanced debit/credit entries
-- **Reconciliation** — an endpoint that checks whether debits equal credits for any loan. If they don't, something went wrong
-- **Event streaming** — every state change (approved, disbursed, repayment received, fully paid, defaulted) publishes a Kafka event for downstream systems
+- **Apply for a loan**: pick a product, specify amount and tenure, get instant approval or rejection based on credit score
+- **Credit scoring**: calculates a score (400–900) based on loan history, defaults, and outstanding balances. Scores are cached in Redis so repeated checks are fast
+- **Repayment schedule**: generates an amortization table with principal/interest breakdown per installment using the standard EMI formula
+- **Make repayments**: payments are applied to the next due installment. Partial payments are tracked. Full payoff closes the loan
+- **Early settlement**: calculates how much you'd save by paying off early (50% rebate on unearned interest)
+- **Double-entry ledger**: every financial movement (disbursement, principal repayment, interest, fees) creates balanced debit/credit entries
+- **Reconciliation**: an endpoint that checks whether debits equal credits for any loan. If they don't, something went wrong
+- **Event streaming**: every state change (approved, disbursed, repayment received, fully paid, defaulted) publishes a Kafka event for downstream systems
 
 ## How a Loan Goes Through the System
 
 1. Customer calls `POST /api/loans/apply` with a product code, amount, and tenure
 2. The credit scoring engine checks their history and returns a score + risk band
 3. If the score is above the product's minimum, the loan is approved with a calculated EMI
-4. The repayment schedule is generated — one row per month with due dates and amounts
-5. An admin calls `POST /api/loans/{ref}/disburse` — this creates ledger entries and emits a `LOAN_DISBURSED` event
+4. The repayment schedule is generated, one row per month with due dates and amounts
+5. An admin calls `POST /api/loans/{ref}/disburse`. This creates ledger entries and emits a `LOAN_DISBURSED` event
 6. As the customer makes repayments, each payment is applied against the schedule
 7. When the outstanding balance hits zero, the loan status becomes `FULLY_PAID`
 
@@ -34,7 +34,7 @@ mvn spring-boot:run
 # Swagger UI: http://localhost:8484/swagger-ui.html
 ```
 
-Runs with H2 and in-memory cache — no Kafka or Redis needed for development.
+Runs with H2 and in-memory cache. No Kafka or Redis needed for development.
 
 ### Full stack with Docker
 
@@ -85,7 +85,7 @@ curl http://localhost:8484/api/loans/LN-XXXXXXXXXX/reconcile
 | GET | `/api/loans/credit-score/{id}` | Credit score and risk band |
 | GET | `/api/loans/summary/{id}` | Customer portfolio overview |
 
-The credit scoring service is also available over **gRPC on port 9090** — defined in `credit_scoring.proto` with three RPCs: `GetCreditScore`, `CheckEligibility`, and `GetCreditHistory`.
+The credit scoring service is also available over **gRPC on port 9090**, defined in `credit_scoring.proto` with three RPCs: `GetCreditScore`, `CheckEligibility`, and `GetCreditHistory`.
 
 ## Built With
 
