@@ -54,6 +54,13 @@ public class LoanService {
                     product.getMinTenureMonths(), product.getMaxTenureMonths()));
         }
 
+        // Check active loan limit (max 3 per customer)
+        long activeCount = loanRepository.countByCustomerIdAndStatusIn(customerId,
+                List.of(LoanStatus.ACTIVE, LoanStatus.DISBURSED, LoanStatus.APPROVED));
+        if (activeCount >= 3) {
+            throw new IllegalArgumentException("Maximum 3 concurrent loans allowed. You have " + activeCount + " active loans.");
+        }
+
         // Credit check
         var creditResult = creditScoringService.assess(customerId);
 

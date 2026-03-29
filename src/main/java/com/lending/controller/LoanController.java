@@ -3,8 +3,10 @@ package com.lending.controller;
 import com.lending.dto.request.LoanApplicationRequest;
 import com.lending.dto.request.RepaymentRequest;
 import com.lending.entity.*;
+import com.lending.scheduler.OverdueScheduler;
 import com.lending.service.CreditScoringService;
 import com.lending.service.LoanService;
+import com.lending.service.PortfolioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,6 +27,8 @@ public class LoanController {
 
     private final LoanService loanService;
     private final CreditScoringService creditScoringService;
+    private final PortfolioService portfolioService;
+    private final OverdueScheduler overdueScheduler;
 
     @PostMapping("/products")
     @Operation(summary = "Create a loan product")
@@ -148,5 +152,18 @@ public class LoanController {
                 "totalBorrowed", totalBorrowed,
                 "totalOutstanding", totalOutstanding
         ));
+    }
+
+    @GetMapping("/admin/portfolio")
+    @Operation(summary = "Platform-wide lending portfolio dashboard")
+    public ResponseEntity<Map<String, Object>> portfolio() {
+        return ResponseEntity.ok(portfolioService.getDashboard());
+    }
+
+    @PostMapping("/admin/run-overdue-check")
+    @Operation(summary = "Manually trigger overdue detection and late fee processing")
+    public ResponseEntity<Map<String, Object>> runOverdueCheck() {
+        int processed = overdueScheduler.processOverdueInstallments();
+        return ResponseEntity.ok(Map.of("overdueInstallmentsProcessed", processed));
     }
 }
