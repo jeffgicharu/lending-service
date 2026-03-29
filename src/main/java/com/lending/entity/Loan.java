@@ -76,6 +76,7 @@ public class Loan {
     private LocalDate maturityDate;
 
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Builder.Default
     private List<RepaymentSchedule> schedule = new ArrayList<>();
 

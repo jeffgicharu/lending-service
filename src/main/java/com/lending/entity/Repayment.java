@@ -22,6 +22,7 @@ public class Repayment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "loan_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Loan loan;
 
     @Column(nullable = false, unique = true, length = 50)

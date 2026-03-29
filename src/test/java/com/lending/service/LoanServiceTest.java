@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestPropertySource(properties = {
     "lending.kafka.enabled=false",
     "lending.redis.enabled=false",
+    "grpc.server.port=0",
     "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration"
 })
 @Transactional
