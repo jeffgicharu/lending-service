@@ -307,6 +307,104 @@ public class LoanService {
         );
     }
 
+    // ─── WRITE-OFF ──────────────────────────────────────────────────
+
+    @Transactional
+    public Loan writeOff(String reference, String reason) {
+        Loan loan = getLoanByReference(reference);
+        if (loan.getStatus() != LoanStatus.DEFAULTED) {
+            throw new IllegalStateException("Only defaulted loans can be written off. Current: " + loan.getStatus());
+        }
+
+        BigDecimal writeOffAmount = loan.getOutstandingBalance();
+        loan.setStatus(LoanStatus.WRITTEN_OFF);
+        loanRepository.save(loan);
+
+        createLedgerEntry(loan, "WRITE_OFF", "DEBIT", "WRITE_OFF_EXPENSE",
+                writeOffAmount, "WO-" + reference, "Loan written off: " + reason);
+        createLedgerEntry(loan, "WRITE_OFF", "CREDIT", "LOAN_PORTFOLIO",
+                writeOffAmount, "WO-" + reference, "Portfolio reduction");
+
+        eventPublisher.publish(LoanEvent.builder()
+                .eventType("LOAN_WRITTEN_OFF")
+                .loanReference(reference)
+                .customerId(loan.getCustomerId())
+                .amount(writeOffAmount)
+                .detail(reason)
+                .build());
+
+        return loan;
+    }
+
+    // ─── RESTRUCTURING ──────────────────────────────────────────────
+
+    @Transactional
+    public Loan restructure(String reference, int newTenureMonths) {
+        Loan loan = getLoanByReference(reference);
+        if (loan.getStatus() != LoanStatus.ACTIVE && loan.getStatus() != LoanStatus.DISBURSED) {
+            throw new IllegalStateException("Only active loans can be restructured. Current: " + loan.getStatus());
+        }
+
+        BigDecimal remainingPrincipal = loan.getOutstandingBalance();
+        BigDecimal monthlyRate = loan.getInterestRate()
+                .divide(BigDecimal.valueOf(1200), 10, RoundingMode.HALF_UP);
+        BigDecimal newEmi = calculateEMI(remainingPrincipal, monthlyRate, newTenureMonths);
+        BigDecimal newTotalRepayable = newEmi.multiply(BigDecimal.valueOf(newTenureMonths))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        // Delete old pending installments
+        List<RepaymentSchedule> pending = scheduleRepository
+                .findByLoanIdAndStatusOrderByInstallmentNumber(loan.getId(), RepaymentStatus.PENDING);
+        scheduleRepository.deleteAll(pending);
+
+        // Update loan terms
+        int paidInstallments = loan.getTenureMonths() - pending.size();
+        loan.setTenureMonths(paidInstallments + newTenureMonths);
+        loan.setMonthlyInstallment(newEmi);
+        loan.setOutstandingBalance(newTotalRepayable);
+        loan.setTotalRepayable(loan.getTotalPaid().add(newTotalRepayable));
+        loan.setMaturityDate(LocalDate.now().plusMonths(newTenureMonths));
+        loanRepository.save(loan);
+
+        // Generate new schedule for remaining tenure
+        BigDecimal balance = remainingPrincipal;
+        LocalDate dueDate = LocalDate.now().plusMonths(1);
+
+        for (int i = 1; i <= newTenureMonths; i++) {
+            BigDecimal interest = balance.multiply(monthlyRate).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal principal = newEmi.subtract(interest);
+            if (i == newTenureMonths) {
+                principal = balance;
+                interest = newEmi.subtract(principal);
+                if (interest.compareTo(BigDecimal.ZERO) < 0) interest = BigDecimal.ZERO;
+            }
+            balance = balance.subtract(principal).max(BigDecimal.ZERO);
+
+            scheduleRepository.save(RepaymentSchedule.builder()
+                    .loan(loan)
+                    .installmentNumber(paidInstallments + i)
+                    .dueDate(dueDate)
+                    .principalDue(principal)
+                    .interestDue(interest)
+                    .totalDue(principal.add(interest))
+                    .amountPaid(BigDecimal.ZERO)
+                    .outstandingAfter(balance)
+                    .status(RepaymentStatus.PENDING)
+                    .build());
+            dueDate = dueDate.plusMonths(1);
+        }
+
+        eventPublisher.publish(LoanEvent.builder()
+                .eventType("LOAN_RESTRUCTURED")
+                .loanReference(reference)
+                .customerId(loan.getCustomerId())
+                .amount(remainingPrincipal)
+                .detail("New tenure: " + newTenureMonths + " months, new EMI: " + newEmi)
+                .build());
+
+        return loan;
+    }
+
     // ─── PRODUCT MANAGEMENT ─────────────────────────────────────────
 
     @Transactional

@@ -105,6 +105,20 @@ public class LoanController {
         return ResponseEntity.ok(loanService.calculateEarlySettlement(reference));
     }
 
+    @PostMapping("/{reference}/write-off")
+    @Operation(summary = "Write off a defaulted loan")
+    public ResponseEntity<Loan> writeOff(@PathVariable String reference,
+                                          @RequestParam(defaultValue = "Bad debt") String reason) {
+        return ResponseEntity.ok(loanService.writeOff(reference, reason));
+    }
+
+    @PostMapping("/{reference}/restructure")
+    @Operation(summary = "Restructure an active loan with new tenure")
+    public ResponseEntity<Loan> restructure(@PathVariable String reference,
+                                             @RequestParam int newTenureMonths) {
+        return ResponseEntity.ok(loanService.restructure(reference, newTenureMonths));
+    }
+
     @GetMapping("/credit-score/{customerId}")
     @Operation(summary = "Get customer credit score and eligibility")
     public ResponseEntity<CreditScoringService.CreditResult> getCreditScore(@PathVariable String customerId) {
