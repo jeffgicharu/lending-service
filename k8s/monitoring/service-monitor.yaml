@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: lending-service
+  labels:
+    app: lending-service
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: lending-service
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 15s
+  namespaceSelector:
+    matchNames:
+      - default
