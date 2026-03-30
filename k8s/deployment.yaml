@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lending-service
+  labels:
+    app: lending-service
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lending-service
+  template:
+    metadata:
+      labels:
+        app: lending-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8484"
+    spec:
+      containers:
+        - name: lending-service
+          image: lending-service:latest
+          ports:
+            - containerPort: 8484
+              name: http
+            - containerPort: 9090
+              name: grpc
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "postgres"
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: lending-config
+                  key: database-url
+            - name: KAFKA_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: lending-config
+                  key: kafka-servers
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: lending-config
+                  key: redis-host
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8484
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8484
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

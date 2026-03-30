@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lending-config
+data:
+  database-url: "jdbc:postgresql://postgres:5432/lendingdb"
+  kafka-servers: "kafka:9092"
+  redis-host: "redis"

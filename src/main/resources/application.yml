@@ -40,6 +40,18 @@ spring:
 server:
   port: 8484
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: lending-service
+
 grpc:
   server:
     port: 9090

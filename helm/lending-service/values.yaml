@@ -1,0 +1,42 @@
+replicaCount: 2
+
+image:
+  repository: lending-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  httpPort: 8484
+  grpcPort: 9090
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+database:
+  url: "jdbc:postgresql://postgres:5432/lendingdb"
+  username: "postgres"
+  password: "postgres"
+
+kafka:
+  servers: "kafka:9092"
+  enabled: true
+
+redis:
+  host: "redis"
+  enabled: true
+
+prometheus:
+  enabled: true
+  path: /actuator/prometheus
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilization: 70

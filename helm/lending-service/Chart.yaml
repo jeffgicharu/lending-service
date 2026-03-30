@@ -1,0 +1,6 @@
+apiVersion: v2
+name: lending-service
+description: Digital lending microservice with Kafka, Redis, and gRPC
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
