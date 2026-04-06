@@ -142,7 +142,7 @@ Defined in `credit_scoring.proto`:
 
 ## Built With
 
-Spring Boot 3.2, Java 17, Apache Kafka (Spring Kafka), Redis (Spring Data Redis), gRPC + Protocol Buffers, Spring Data JPA, PostgreSQL (H2 for dev), Docker + docker-compose, GitHub Actions CI.
+Spring Boot 3.2, Java 17, Apache Kafka (Spring Kafka), Redis (Spring Data Redis), gRPC + Protocol Buffers, Spring Data JPA, PostgreSQL (H2 for dev), Docker + docker-compose, Kubernetes + Helm, GitHub Actions CI, Prometheus metrics.
 
 ## Tests
 
@@ -153,6 +153,24 @@ mvn test   # 24 tests
 **Unit tests (13):** loan approval, EMI calculation, schedule generation, disbursement with ledger entries, repayment processing, full payoff lifecycle, duplicate repayment rejection, ledger reconciliation, amount validation, credit scoring, state validation, product management.
 
 **Integration tests (11):** loan application through HTTP, disburse and repay flow, schedule endpoint, reconciliation after disbursement, credit score endpoint, customer summary, portfolio dashboard, early settlement calculation, loan restructuring, unknown product rejection, overdue check trigger.
+
+## Performance Testing
+
+JMeter test plans are in `src/test/jmeter/`. Simulates **100 concurrent users** running the full loan application flow for 90 seconds:
+
+- List loan products (assert under 500ms)
+- Credit score check per customer (assert under 1s)
+- Submit loan application with randomized amounts and tenures (assert under 2s)
+- Query portfolio dashboard (assert under 1s)
+- Dynamic customer IDs per thread to avoid loan-limit collisions
+
+Run with: `jmeter -n -t src/test/jmeter/lending-service-load-test.jmx -l results.jtl`
+
+## Code Quality
+
+- **JaCoCo** code coverage with gRPC generated code excluded from thresholds
+- **SonarCloud** static analysis with quality gate enforcement
+- **OWASP Dependency Check** for vulnerability scanning
 
 ## License
 
